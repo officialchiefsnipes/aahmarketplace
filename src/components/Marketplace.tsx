@@ -742,6 +742,13 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
 
   useEffect(() => {
+    const check = () => setAdminOpen(window.location.hash === '#admin');
+    check();
+    window.addEventListener('hashchange', check);
+    return () => window.removeEventListener('hashchange', check);
+  }, []);
+
+  useEffect(() => {
     persistBusinesses(businesses);
   }, [businesses]);
 
@@ -860,16 +867,11 @@ export default function App() {
             <div className="am-empty">
               No business matches <strong>“{trimmedQuery}”</strong> yet.
               <br />
-              Try another word — or add them from the admin console below.
+              Try another word.
             </div>
           )}
         </main>
 
-        <footer className="am-foot">
-          <button className="am-admin-btn" onClick={() => setAdminOpen(true)}>
-            Admin console
-          </button>
-        </footer>
       </div>
 
       {adminOpen && (
@@ -877,7 +879,10 @@ export default function App() {
           businesses={businesses}
           onAdd={handleAdd}
           onDelete={handleDelete}
-          onClose={() => setAdminOpen(false)}
+          onClose={() => {
+            setAdminOpen(false);
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+          }}
         />
       )}
     </div>
