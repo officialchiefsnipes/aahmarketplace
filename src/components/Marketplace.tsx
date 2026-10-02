@@ -742,6 +742,13 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
 
   useEffect(() => {
+    const check = () => setAdminOpen(window.location.hash === '#admin');
+    check();
+    window.addEventListener('hashchange', check);
+    return () => window.removeEventListener('hashchange', check);
+  }, []);
+
+  useEffect(() => {
     persistBusinesses(businesses);
   }, [businesses]);
 
