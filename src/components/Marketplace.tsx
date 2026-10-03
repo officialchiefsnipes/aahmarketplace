@@ -1,5 +1,8 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
+import { Button } from '@/components/ui/button';
 
 /* =====================================================================
    ABDULSALAMI MARKETPLACE
@@ -7,43 +10,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 
    • Residents search by business name OR by service (with synonyms)
    • Results are clickable → open the business's WhatsApp chat
-   • "Admin console" at the bottom lets you add / remove businesses
-   • Data persists in localStorage (swap for a real backend later)
+   • Admins can manage shared businesses through #admin
    ===================================================================== */
 
 /* ----------------------------- Data layer ---------------------------- */
-
-const STORAGE_KEY = 'abdulsalami_marketplace_v1';
-
-const SEED_BUSINESSES = [
-  {
-    id: 'b001',
-    name: "Blessing's Kitchen",
-    category: 'Food & Cooking',
-    room: 'Block C, Room 12',
-    contactType: 'phone',
-    contact: '+2348012345678',
-    addedBy: 'seed',
-  },
-  {
-    id: 'b002',
-    name: "Femi's Barbing Studio",
-    category: 'Hair & Barbing',
-    room: 'Block A, Room 4',
-    contactType: 'whatsapp',
-    contact: 'https://wa.me/2348023456789',
-    addedBy: 'seed',
-  },
-  {
-    id: 'b003',
-    name: 'QuickFix Phone Repairs',
-    category: 'Phone & Gadget Repair',
-    room: '',
-    contactType: 'phone',
-    contact: '+2348034567890',
-    addedBy: 'seed',
-  },
-];
 
 const SYNONYMS = {
   'food & cooking': ['food', 'cook', 'cooking', 'kitchen', 'meal', 'restaurant', 'eat', 'catering', 'chef'],
@@ -99,26 +69,6 @@ function toWhatsAppLink(business) {
   if (/^https?:\/\//i.test(contact)) return contact;
   const digits = contact.replace(/\D/g, '');
   return digits ? `https://wa.me/${digits}` : '#';
-}
-
-function loadBusinesses() {
-  try {
-    if (typeof window === 'undefined') return SEED_BUSINESSES;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return SEED_BUSINESSES;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : SEED_BUSINESSES;
-  } catch {
-    return SEED_BUSINESSES;
-  }
-}
-
-function persistBusinesses(list) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    /* storage unavailable — ignore */
-  }
 }
 
 /* ------------------------------ Icons -------------------------------- */
@@ -212,6 +162,10 @@ const CSS = `
     line-height: 1.55;
     color: var(--muted);
   }
+  .am-about { margin: 26px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line); font-size: .88rem; line-height: 1.7; color: var(--muted); }
+  .am-auth-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+  .am-auth-actions button { font: inherit; font-size: .82rem; color: var(--orange-ink); background: none; border: 0; cursor: pointer; text-decoration: underline; }
+  .am-auth-divider { text-align: center; color: var(--muted); font-size: .82rem; margin: 4px 0; }
 
   /* --------------------------- Search --------------------------- */
   .am-search {
@@ -566,7 +520,7 @@ const CSS = `
 
 /* --------------------------- Admin console --------------------------- */
 
-function AdminConsole({ businesses, onAdd, onDelete, onClose }) {
+function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
   const [form, setForm] = useState({
     name: '',
     category: '',
@@ -622,10 +576,11 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose }) {
       <div className="am-panel" role="dialog" aria-modal="true" aria-label="Admin console">
         <div className="am-panel-head">
           <h2>Admin console</h2>
-          <button className="am-icon-btn" onClick={onClose} aria-label="Close">
+          <Button className="am-icon-btn" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
             <CloseIcon />
-          </button>
+          </Button>
         </div>
+        <div className="am-auth-actions"><Button variant="link" onClick={onSignOut}>Sign out</Button></div>
         <p className="am-panel-note">
           Add a business here and it becomes instantly searchable. Contacts are turned into
           WhatsApp links automatically.
@@ -697,9 +652,9 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose }) {
           {error && <div className="am-error">{error}</div>}
           {notice && !error && <div className="am-ok">{notice}</div>}
 
-          <button className="am-submit" type="submit">
+          <Button className="am-submit" type="submit">
             Add business
-          </button>
+          </Button>
         </form>
 
         <div className="am-divider" />
@@ -723,9 +678,9 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose }) {
                   {business.room ? ` · ${business.room}` : ''} · {business.contact}
                 </small>
               </div>
-              <button className="am-del" onClick={() => onDelete(business.id)}>
+              <Button className="am-del" variant="ghost" onClick={() => onDelete(business.id)}>
                 Remove
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -734,23 +689,100 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose }) {
   );
 }
 
+function AdminLogin({ onClose, onSignedIn, denied }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState('signIn');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event) {
+    event.preventDefault();
+    setMessage('');
+    setBusy(true);
+    try {
+      if (mode === 'register') {
+        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/#admin` } });
+        if (error) throw error;
+        setMessage('Check your email to confirm your account. An existing admin must approve it before you can manage listings.');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        await onSignedIn();
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not sign in. Please try again.');
+    } finally { setBusy(false); }
+  }
+
+  async function googleSignIn() {
+    setMessage('');
+    setBusy(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', { redirect_uri: `${window.location.origin}/#admin` });
+      if (result.error) throw result.error;
+      if (!result.redirected) await onSignedIn();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Google sign-in did not work.');
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="am-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="am-panel" role="dialog" aria-modal="true" aria-label="Admin login">
+        <div className="am-panel-head"><h2>Admin login</h2><Button className="am-icon-btn" variant="ghost" size="icon" onClick={onClose} aria-label="Close"><CloseIcon /></Button></div>
+        <p className="am-panel-note">Sign in with an approved admin account to manage businesses.</p>
+        {denied && <p className="am-error">This account does not have admin access. Ask the marketplace owner to approve it.</p>}
+        <form className="am-form" onSubmit={submit}>
+          <div className="am-field"><label htmlFor="am-email">Email</label><input id="am-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></div>
+          <div className="am-field"><label htmlFor="am-password">Password</label><input id="am-password" type="password" minLength={6} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required value={password} onChange={(event) => setPassword(event.target.value)} /></div>
+          {message && <p className="am-panel-note" role="status">{message}</p>}
+          <Button className="am-submit" type="submit" disabled={busy}>{mode === 'register' ? 'Create account' : 'Sign in'}</Button>
+          <p className="am-auth-divider">or</p>
+          <Button type="button" variant="outline" onClick={googleSignIn} disabled={busy}>Continue with Google</Button>
+        </form>
+        <div className="am-auth-actions"><Button variant="link" onClick={() => { setMode(mode === 'register' ? 'signIn' : 'register'); setMessage(''); }}>{mode === 'register' ? 'Already have an account? Sign in' : 'Need an account? Create one'}</Button></div>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------ App ---------------------------------- */
 
 export default function App() {
-  const [businesses, setBusinesses] = useState(loadBusinesses);
+  const [businesses, setBusinesses] = useState([]);
   const [query, setQuery] = useState('');
   const [adminOpen, setAdminOpen] = useState(false);
+  const [adminStatus, setAdminStatus] = useState('loading');
+  const [dataError, setDataError] = useState('');
+
+  const refreshBusinesses = async () => {
+    const { data, error } = await supabase.from('businesses').select('id,name,category,room,contact_type,contact').order('created_at');
+    if (error) setDataError('Businesses could not be loaded. Please refresh the page.');
+    else { setBusinesses(data || []); setDataError(''); }
+  };
+
+  const checkAdmin = async () => {
+    setAdminStatus('loading');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAdminStatus('signedOut'); return; }
+    const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
+    setAdminStatus(!error && data?.role === 'admin' ? 'admin' : 'denied');
+  };
 
   useEffect(() => {
     const check = () => setAdminOpen(window.location.hash === '#admin');
     check();
+    refreshBusinesses();
+    checkAdmin();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        setTimeout(() => { void checkAdmin(); }, 0);
+      }
+    });
     window.addEventListener('hashchange', check);
-    return () => window.removeEventListener('hashchange', check);
+    return () => { window.removeEventListener('hashchange', check); subscription.unsubscribe(); };
   }, []);
-
-  useEffect(() => {
-    persistBusinesses(businesses);
-  }, [businesses]);
 
   const trimmedQuery = query.trim();
   const isSearching = trimmedQuery.length >= 2;
@@ -768,19 +800,25 @@ export default function App() {
     return Array.from(new Set([...fromData, ...fromSynonyms])).slice(0, 8);
   }, [businesses]);
 
-  const handleAdd = (payload) => {
-    setBusinesses((prev) => [
-      ...prev,
-      { id: `b${Date.now()}`, ...payload, addedBy: 'admin' },
-    ]);
+  const handleAdd = async (payload) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { await checkAdmin(); throw new Error('Please sign in again.'); }
+    const { error } = await supabase.from('businesses').insert({ name: payload.name, category: payload.category, room: payload.room, contact_type: payload.contactType, contact: payload.contact, added_by: user.id });
+    if (error) throw new Error('Could not add this business. Check your admin access and try again.');
+    await refreshBusinesses();
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const target = businesses.find((b) => b.id === id);
     if (!target) return;
     if (!window.confirm(`Remove "${target.name}" from the marketplace?`)) return;
-    setBusinesses((prev) => prev.filter((b) => b.id !== id));
+    const { error } = await supabase.from('businesses').delete().eq('id', id);
+    if (error) { setDataError('Could not remove this business. Check your admin access and try again.'); return; }
+    await refreshBusinesses();
   };
+
+  const closeAdmin = () => { setAdminOpen(false); history.replaceState(null, '', window.location.pathname + window.location.search); };
+  const signOut = async () => { await supabase.auth.signOut(); setAdminStatus('signedOut'); closeAdmin(); };
 
   return (
     <div className="am-root">
@@ -817,6 +855,7 @@ export default function App() {
         </div>
 
         <main className="am-body">
+          {dataError && <p className="am-error" role="alert">{dataError}</p>}
           {!isSearching && (
             <>
               <p className="am-label">Popular searches</p>
@@ -871,20 +910,20 @@ export default function App() {
             </div>
           )}
         </main>
+        <p className="am-about">The Abdulsalami Marketplace is an outfit aimed to make consumers meet goods and service providers and likewise help businesses thrive by making them readily accessible to members of the hall. Please note that all transactions should be finalized only after due diligence has been done. Have fun shopping.</p>
 
       </div>
 
-      {adminOpen && (
+      {adminOpen && adminStatus === 'admin' && (
         <AdminConsole
           businesses={businesses}
           onAdd={handleAdd}
           onDelete={handleDelete}
-          onClose={() => {
-            setAdminOpen(false);
-            history.replaceState(null, '', window.location.pathname + window.location.search);
-          }}
+          onClose={closeAdmin}
+          onSignOut={signOut}
         />
       )}
+      {adminOpen && (adminStatus === 'signedOut' || adminStatus === 'denied') && <AdminLogin denied={adminStatus === 'denied'} onClose={closeAdmin} onSignedIn={checkAdmin} />}
     </div>
   );
 }
