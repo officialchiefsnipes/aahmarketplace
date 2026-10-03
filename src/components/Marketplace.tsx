@@ -549,7 +549,7 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setNotice('');
 
@@ -558,17 +558,20 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
       return;
     }
 
-    onAdd({
-      name: form.name.trim(),
-      category: form.category.trim(),
-      room: form.room.trim(),
-      contactType: form.contactType,
-      contact: form.contact.trim(),
-    });
-
-    setError('');
-    setNotice(`"${form.name.trim()}" was added to the marketplace.`);
-    setForm({ name: '', category: '', room: '', contactType: 'phone', contact: '' });
+    try {
+      await onAdd({
+        name: form.name.trim(),
+        category: form.category.trim(),
+        room: form.room.trim(),
+        contactType: form.contactType,
+        contact: form.contact.trim(),
+      });
+      setError('');
+      setNotice(`"${form.name.trim()}" was added to the marketplace.`);
+      setForm({ name: '', category: '', room: '', contactType: 'phone', contact: '' });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not add this business.');
+    }
   };
 
   return (
