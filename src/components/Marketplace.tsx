@@ -707,7 +707,7 @@ function AdminLogin({ onClose, onSignedIn, denied }) {
       if (mode === 'register') {
         const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/#admin` } });
         if (error) throw error;
-        setMessage('Check your email to confirm your account. An existing admin must approve it before you can manage listings.');
+        setMessage('Check your email to confirm your account. The marketplace owner must approve it before you can manage listings.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -816,7 +816,7 @@ export default function App() {
     if (!target) return;
     if (!window.confirm(`Remove "${target.name}" from the marketplace?`)) return;
     const { error } = await supabase.from('businesses').delete().eq('id', id);
-    if (error) { setDataError('Could not remove this business. Check your admin access and try again.'); return; }
+    if (error) { window.alert('Could not remove this business. Check your admin access and try again.'); return; }
     await refreshBusinesses();
   };
 
