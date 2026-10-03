@@ -1,0 +1,3 @@
+- [x] Display the requested marketplace note verbatim.
+- [x] Require verified admin login for the #admin console and shared listing changes.
+- [ ] Assign the first admin role after the owner supplies the account email used to register or sign in.
