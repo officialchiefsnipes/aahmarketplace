@@ -277,8 +277,10 @@ const CSS = `
 
 /* --------------------------- Admin console --------------------------- */
 
-function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
-  const [form, setForm] = useState({ name: '', category: '', room: '', contactType: 'phone', contact: '' });
+function AdminConsole({ businesses, onAdd, onDelete, onUpdate, onClose, onSignOut }) {
+  const emptyForm = { name: '', category: '', room: '', contactType: 'phone', contact: '' };
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -288,13 +290,23 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
     [businesses]
   );
 
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const update = (key) => (event) => setForm((prev) => ({ ...prev, [key]: event.target.value }));
+
+  const startEdit = (b) => {
+    setEditingId(b.id);
+    setForm({
+      name: b.name || '',
+      category: b.category || '',
+      room: b.room || '',
+      contactType: b.contactType || b.contact_type || 'phone',
+      contact: b.contact || '',
+    });
+    setError('');
+    setNotice('');
+    document.querySelector('.am-overlay')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => { setEditingId(null); setForm(emptyForm); setError(''); };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -302,25 +314,32 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
     const validationError = validateBusiness(form);
     if (validationError) { setError(validationError); return; }
 
+    const payload = {
+      name: form.name.trim(),
+      category: form.category.trim(),
+      room: form.room.trim(),
+      contactType: form.contactType,
+      contact: form.contact.trim(),
+    };
     setBusy(true);
     try {
-      await onAdd({
-        name: form.name.trim(),
-        category: form.category.trim(),
-        room: form.room.trim(),
-        contactType: form.contactType,
-        contact: form.contact.trim(),
-      });
+      if (editingId) {
+        await onUpdate(editingId, payload);
+        setNotice(`"${payload.name}" was updated.`);
+        setEditingId(null);
+      } else {
+        await onAdd(payload);
+        setNotice(`"${payload.name}" was saved to the cloud.`);
+      }
       setError('');
-      setNotice(`"${form.name.trim()}" was saved to the cloud.`);
-      setForm({ name: '', category: '', room: '', contactType: 'phone', contact: '' });
+      setForm(emptyForm);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add this business.');
+      setError(err instanceof Error ? err.message : 'Could not save this business.');
     } finally { setBusy(false); }
   };
 
   return (
-    <div className="am-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="am-overlay">
       <div className="am-panel" role="dialog" aria-modal="true" aria-label="Admin console">
         <div className="am-panel-head">
           <h2>Admin console</h2>
@@ -330,7 +349,7 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
         </div>
         <div className="am-auth-actions"><Button variant="link" onClick={onSignOut}>Sign out</Button></div>
         <p className="am-panel-note">
-          Every listing is stored in the cloud (Supabase). Contacts are turned into WhatsApp links automatically.
+          {editingId ? 'Editing a listing — change the details and save.' : 'Every listing is stored in the cloud. Contacts are turned into WhatsApp links automatically.'}
         </p>
 
         <form className="am-form" onSubmit={handleSubmit}>
@@ -376,8 +395,11 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
           {notice && !error && <div className="am-ok">{notice}</div>}
 
           <Button className="am-submit" type="submit" disabled={busy}>
-            {busy ? 'Saving…' : 'Add business'}
+            {busy ? 'Saving…' : editingId ? 'Save changes' : 'Add business'}
           </Button>
+          {editingId && (
+            <Button type="button" variant="ghost" onClick={cancelEdit} disabled={busy}>Cancel edit</Button>
+          )}
         </form>
 
         <div className="am-divider" />
@@ -392,7 +414,10 @@ function AdminConsole({ businesses, onAdd, onDelete, onClose, onSignOut }) {
                 <strong>{b.name}</strong>
                 <small>{b.category}{b.room ? ` · ${b.room}` : ''} · {b.contact}</small>
               </div>
-              <Button className="am-del" variant="ghost" onClick={() => onDelete(b.id)}>Remove</Button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <Button className="am-del" variant="ghost" onClick={() => startEdit(b)}>Edit</Button>
+                <Button className="am-del" variant="ghost" onClick={() => onDelete(b.id)}>Remove</Button>
+              </div>
             </div>
           ))}
         </div>
@@ -597,6 +622,20 @@ export default function App() {
     await refreshBusinesses();
   };
 
+  const handleUpdate = async (id, payload) => {
+    const validationError = validateBusiness(payload);
+    if (validationError) throw new Error(validationError);
+    const { error } = await supabase.from('businesses').update({
+      name: payload.name,
+      category: payload.category,
+      room: payload.room,
+      contact_type: payload.contactType,
+      contact: payload.contact,
+    }).eq('id', id);
+    if (error) throw new Error('Could not update this business. Check your admin access and try again.');
+    await refreshBusinesses();
+  };
+
   const handleDelete = async (id) => {
     const target = businesses.find((b) => b.id === id);
     if (!target) return;
@@ -720,6 +759,7 @@ export default function App() {
           businesses={businesses}
           onAdd={handleAdd}
           onDelete={handleDelete}
+          onUpdate={handleUpdate}
           onClose={closeAdmin}
           onSignOut={signOut}
         />
