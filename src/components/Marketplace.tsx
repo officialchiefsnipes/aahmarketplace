@@ -704,7 +704,7 @@ export default function App() {
 
           {!isSearching && (
             <>
-              <p className="am-label">Popular searches</p>
+              <p className="am-label">Suggested searches</p>
               <div className="am-chips">
                 {suggestions.map((s) => (
                   <button key={s} className="am-chip" onClick={() => setQuery(s)}>{s}</button>
