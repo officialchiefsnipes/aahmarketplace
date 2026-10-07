@@ -600,7 +600,13 @@ export default function App() {
     const fromSynonyms = Object.keys(SYNONYMS).map((key) =>
       key.replace(/\b\w/g, (c) => c.toUpperCase())
     );
-    return Array.from(new Set([...fromData, ...fromSynonyms])).slice(0, 3);
+    const all = Array.from(new Set([...fromData, ...fromSynonyms]));
+    // Shuffle (Fisher–Yates) so a fresh page load shows a new trio of suggestions
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]];
+    }
+    return all.slice(0, 3);
   }, [businesses]);
 
   const handleAdd = async (payload) => {
