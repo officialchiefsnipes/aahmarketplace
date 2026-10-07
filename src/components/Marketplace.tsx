@@ -600,7 +600,7 @@ export default function App() {
     const fromSynonyms = Object.keys(SYNONYMS).map((key) =>
       key.replace(/\b\w/g, (c) => c.toUpperCase())
     );
-    return Array.from(new Set([...fromData, ...fromSynonyms])).slice(0, 8);
+    return Array.from(new Set([...fromData, ...fromSynonyms])).slice(0, 3);
   }, [businesses]);
 
   const handleAdd = async (payload) => {
