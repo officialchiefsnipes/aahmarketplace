@@ -1,3 +1,5 @@
 - [x] Display the requested marketplace note verbatim.
 - [x] Require verified admin login for the #admin console and shared listing changes.
 - [x] Assign the first admin role after the owner supplies the account email used to register or sign in.
+- [x] Blend the uploaded hall photo into the existing marketplace background.
+- [ ] Add the uploaded bird beside the title and to loading states — awaiting a JPG or PNG version of the HEIC image.
