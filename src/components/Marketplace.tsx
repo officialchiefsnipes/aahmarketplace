@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
 import hallBackground from '@/assets/abdulsalami-hall-background.jpg.asset.json';
+import { MarketplaceBird } from '@/components/MarketplaceBird';
 
 /* =====================================================================
    ABDULSALAMI MARKETPLACE
@@ -286,6 +287,12 @@ function AdminConsole({ businesses, onAdd, onDelete, onUpdate, onClose, onSignOu
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const [deletingId, setDeletingId] = useState(null);
+  const removeBusiness = async (id) => {
+    setDeletingId(id);
+    try { await onDelete(id); } finally { setDeletingId(null); }
+  };
+
   const knownCategories = useMemo(
     () => Array.from(new Set(businesses.map((b) => b.category))).sort(),
     [businesses]
@@ -396,7 +403,7 @@ function AdminConsole({ businesses, onAdd, onDelete, onUpdate, onClose, onSignOu
           {notice && !error && <div className="am-ok">{notice}</div>}
 
           <Button className="am-submit" type="submit" disabled={busy}>
-            {busy ? 'Saving…' : editingId ? 'Save changes' : 'Add business'}
+            {busy ? <><MarketplaceBird loading compact label="Saving business" /> Saving…</> : editingId ? 'Save changes' : 'Add business'}
           </Button>
           {editingId && (
             <Button type="button" variant="ghost" onClick={cancelEdit} disabled={busy}>Cancel edit</Button>
@@ -417,7 +424,7 @@ function AdminConsole({ businesses, onAdd, onDelete, onUpdate, onClose, onSignOu
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 <Button className="am-del" variant="ghost" onClick={() => startEdit(b)}>Edit</Button>
-                <Button className="am-del" variant="ghost" onClick={() => onDelete(b.id)}>Remove</Button>
+                <Button className="am-del" variant="ghost" disabled={deletingId !== null} onClick={() => removeBusiness(b.id)}>{deletingId === b.id ? <MarketplaceBird loading compact label="Removing business" /> : 'Remove'}</Button>
               </div>
             </div>
           ))}
@@ -505,7 +512,7 @@ function AdminLogin({ onClose, onSignedIn, denied }) {
           )}
           {message && <p className="am-panel-note" role="status">{message}</p>}
           <Button className="am-submit" type="submit" disabled={busy}>
-            {busy ? 'Please wait…' : (mode === 'register' ? 'Create account' : 'Sign in')}
+            {busy ? <><MarketplaceBird loading compact label="Signing in" /> Please wait…</> : (mode === 'register' ? 'Create account' : 'Sign in')}
           </Button>
           <p className="am-auth-divider">or</p>
           <Button type="button" variant="outline" onClick={googleSignIn} disabled={busy}>Continue with Google</Button>
@@ -529,12 +536,15 @@ export default function App() {
   const [adminStatus, setAdminStatus] = useState('loading');
   const [dataError, setDataError] = useState('');
   const [syncedAt, setSyncedAt] = useState(null);
+  const [dataLoading, setDataLoading] = useState(true);
 
   // Per-browser search rate limiter
   const searchHits = useRef([]);
   const [rateLimited, setRateLimited] = useState(false);
 
   const refreshBusinesses = async () => {
+    setDataLoading(true);
+    try {
     const { data, error } = await supabase
       .from('businesses')
       .select('id,name,category,room,contact_type,contact')
@@ -550,6 +560,7 @@ export default function App() {
       setDataError('');
       setSyncedAt(new Date());
     }
+    } finally { setDataLoading(false); }
   };
 
   const checkAdmin = async () => {
@@ -671,7 +682,7 @@ export default function App() {
 
       <div className="am-shell">
         <header className="am-head">
-          <div className="am-mark">AM</div>
+          <div className="am-bird-brand"><MarketplaceBird /></div>
           <h1 className="am-title">
             Abdulsalami <span>Marketplace</span>
           </h1>
@@ -704,6 +715,7 @@ export default function App() {
         </div>
 
         <main className="am-body">
+          {dataLoading && <div className="am-loading"><MarketplaceBird loading label="Loading businesses" /></div>}
           {dataError && <p className="am-error" role="alert">{dataError}</p>}
 
           {rateLimited && isSearching && (
@@ -747,7 +759,7 @@ export default function App() {
             </>
           )}
 
-          {isSearching && !rateLimited && results.length === 0 && (
+          {isSearching && !rateLimited && !dataLoading && results.length === 0 && (
             <div className="am-empty">
               No business matches <strong>“{trimmedQuery}”</strong> yet.
               <br />
@@ -773,6 +785,18 @@ export default function App() {
           onClose={closeAdmin}
           onSignOut={signOut}
         />
+      )}
+
+      {adminOpen && adminStatus === 'loading' && (
+        <div className="am-overlay">
+          <div className="am-panel" role="dialog" aria-modal="true" aria-label="Loading admin console">
+            <div className="am-panel-head">
+              <h2>Admin console</h2>
+              <Button className="am-icon-btn" variant="ghost" size="icon" onClick={closeAdmin} aria-label="Close"><CloseIcon /></Button>
+            </div>
+            <div className="am-loading"><MarketplaceBird loading label="Checking admin access" /></div>
+          </div>
+        </div>
       )}
 
       {adminOpen && (adminStatus === 'signedOut' || adminStatus === 'denied') && (

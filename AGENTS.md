@@ -12,3 +12,4 @@
 - Marketplace listings live in Lovable Cloud with public read and role-gated writes, so everyone sees the same catalog and browser storage cannot grant admin rights.
 - Admin identity uses Cloud Auth with roles in a separate table, so signing in alone never confers admin access.
 - Uploaded marketplace media is served through Lovable Assets pointers; backdrop styling uses global semantic tokens so uploaded photos stay out of the source tree and text remains readable.
+- Use the shared MarketplaceBird component for branding and async loading indicators, with animation defined globally and reduced-motion support, so the same asset renders consistently before and after hydration.
