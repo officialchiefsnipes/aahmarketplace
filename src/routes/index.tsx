@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import Marketplace from "@/components/Marketplace";
+import { MarketplaceBird } from "@/components/MarketplaceBird";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,6 +20,6 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div style={{ minHeight: "100vh", background: "#FBF4E8" }} />;
+  if (!mounted) return <div className="am-loading am-initial-loading"><MarketplaceBird loading label="Loading marketplace" /></div>;
   return <Marketplace />;
 }
