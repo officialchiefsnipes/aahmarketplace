@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
+import hallBackground from '@/assets/abdulsalami-hall-background.jpg.asset.json';
 
 /* =====================================================================
    ABDULSALAMI MARKETPLACE
@@ -149,15 +150,15 @@ const CSS = `
   }
 
   .am-root {
+    position: relative;
+    isolation: isolate;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 0 20px 72px;
     color: var(--ink);
-    background:
-      radial-gradient(900px 480px at 50% -12%, #FDF0DE 0%, rgba(253, 240, 222, 0) 72%),
-      var(--cream);
+    background: var(--cream);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                  Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -664,6 +665,9 @@ export default function App() {
   return (
     <div className="am-root">
       <style>{CSS}</style>
+      <div className="am-background" aria-hidden="true">
+        <img src={hallBackground.url} alt="" fetchPriority="high" />
+      </div>
 
       <div className="am-shell">
         <header className="am-head">
