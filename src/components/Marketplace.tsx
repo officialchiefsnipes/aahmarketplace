@@ -3,8 +3,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
-import hallBackground from '@/assets/abdulsalami-hall-background.jpg.asset.json';
 import { MarketplaceBird } from '@/components/MarketplaceBird';
+
+const HALL_BACKGROUND_URL = 'https://i.postimg.cc/tJRkfcV6/IMG-3732.jpg';
 
 /* =====================================================================
    ABDULSALAMI MARKETPLACE
@@ -677,7 +678,7 @@ export default function App() {
     <div className="am-root">
       <style>{CSS}</style>
       <div className="am-background" aria-hidden="true">
-        <img src={hallBackground.url} alt="" fetchPriority="high" />
+        <img src={HALL_BACKGROUND_URL} alt="" fetchPriority="high" />
       </div>
 
       <div className="am-shell">
