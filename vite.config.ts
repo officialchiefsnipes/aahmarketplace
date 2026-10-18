@@ -12,4 +12,21 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    build: {
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules")) {
+              if (id.includes("react") || id.includes("@tanstack") || id.includes("@supabase")) {
+                return "vendor";
+              }
+            }
+            return undefined;
+          },
+        },
+      },
+    },
+  },
 });
