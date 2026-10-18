@@ -17,8 +17,13 @@ export default defineConfig({
       chunkSizeWarningLimit: 600,
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ["react", "react-dom", "@tanstack/react-router", "@tanstack/react-query", "@supabase/supabase-js"],
+          manualChunks(id) {
+            if (id.includes("node_modules")) {
+              if (id.includes("react") || id.includes("@tanstack") || id.includes("@supabase")) {
+                return "vendor";
+              }
+            }
+            return undefined;
           },
         },
       },
