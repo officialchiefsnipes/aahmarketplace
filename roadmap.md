@@ -3,3 +3,5 @@
 - [x] Assign the first admin role after the owner supplies the account email used to register or sign in.
 - [x] Blend the uploaded hall photo into the existing marketplace background.
 - [x] Add the uploaded bird beside the title and to loading states.
+- [x] Add anonymous business submissions and private admin approval with WhatsApp review.
+- [x] Verify submission, approval, rejection, and hash-only admin access.

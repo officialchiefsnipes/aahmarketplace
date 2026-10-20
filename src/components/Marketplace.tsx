@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
 import { MarketplaceBird } from '@/components/MarketplaceBird';
+import { BusinessSubmissionEntry, BusinessSubmissionReview } from '@/components/BusinessSubmissions';
+import { isAdminHash, normalizeWhatsAppPhone } from '@/lib/business-submissions';
 
 const HALL_BACKGROUND_URL = 'https://i.postimg.cc/tJRkfcV6/IMG-3732.jpg';
 
@@ -92,7 +94,7 @@ function searchBusinesses(businesses, query) {
 function toWhatsAppLink(business) {
   const contact = (business.contact || '').trim();
   if (/^https?:\/\//i.test(contact)) return contact;
-  const digits = contact.replace(/\D/g, '');
+  const digits = normalizeWhatsAppPhone(contact);
   return digits ? `https://wa.me/${digits}` : '#';
 }
 
@@ -280,7 +282,7 @@ const CSS = `
 
 /* --------------------------- Admin console --------------------------- */
 
-function AdminConsole({ businesses, onAdd, onDelete, onUpdate, onClose, onSignOut }) {
+function AdminConsole({ businesses, onAdd, onDelete, onUpdate, onClose, onSignOut, onApproved }) {
   const emptyForm = { name: '', category: '', room: '', contactType: 'phone', contact: '' };
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -357,6 +359,7 @@ function AdminConsole({ businesses, onAdd, onDelete, onUpdate, onClose, onSignOu
           </Button>
         </div>
         <div className="am-auth-actions"><Button variant="link" onClick={onSignOut}>Sign out</Button></div>
+        <BusinessSubmissionReview onApproved={onApproved} />
         <p className="am-panel-note">
           {editingId ? 'Editing a listing — change the details and save.' : 'Every listing is stored in the cloud. Contacts are turned into WhatsApp links automatically.'}
         </p>
@@ -574,7 +577,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    const check = () => setAdminOpen(window.location.hash === '#admin');
+    const check = () => setAdminOpen(isAdminHash(window.location.hash));
     check();
     refreshBusinesses();
     checkAdmin();
@@ -677,6 +680,7 @@ export default function App() {
   return (
     <div className="am-root">
       <style>{CSS}</style>
+      <BusinessSubmissionEntry />
       <div className="am-background" aria-hidden="true">
         <img src={HALL_BACKGROUND_URL} alt="" fetchPriority="high" />
       </div>
@@ -785,6 +789,7 @@ export default function App() {
           onUpdate={handleUpdate}
           onClose={closeAdmin}
           onSignOut={signOut}
+          onApproved={refreshBusinesses}
         />
       )}
 
