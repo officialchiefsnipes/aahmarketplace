@@ -12,6 +12,8 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Search local businesses and services, then chat on WhatsApp." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "https://i.postimg.cc/tJRkfcV6/IMG-3732.jpg" },
+      { name: "twitter:image", content: "https://i.postimg.cc/tJRkfcV6/IMG-3732.jpg" },
     ],
   }),
   component: Index,
