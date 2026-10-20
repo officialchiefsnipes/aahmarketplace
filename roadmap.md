@@ -5,3 +5,4 @@
 - [x] Add the uploaded bird beside the title and to loading states.
 - [x] Add anonymous business submissions and private admin approval with WhatsApp review.
 - [x] Verify submission, approval, rejection, and hash-only admin access.
+- [ ] Remove the private-key dependency from anonymous submissions and verify saving with the public key only.

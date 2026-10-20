@@ -14,4 +14,5 @@
 - Uploaded marketplace media is served through Lovable Assets pointers; backdrop styling uses global semantic tokens so uploaded photos stay out of the source tree and text remains readable.
 - Use the shared MarketplaceBird component for branding and async loading indicators, with animation defined globally and reduced-motion support, so the same asset renders consistently before and after hydration.
 - Keep anonymous business submissions separate from published businesses; validate public inserts in a server function, restrict inbox reads to admins, and approve through a role-checked transactional SQL function to prevent partial publication or duplicate approval.
+- Anonymous submission handlers use a public-key client and a validated pending-only SQL function, never the privileged admin client, so external deployments do not require an inaccessible private key.
 - Use WhatsApp deep links for submission copies and admin review; opening a link is not proof of message delivery, so require explicit admin verification before approval.
