@@ -122,6 +122,15 @@ export type Database = {
         Args: { decision: string; submission_id: string }
         Returns: string
       }
+      submit_pending_business: {
+        Args: {
+          submission_category: string
+          submission_name: string
+          submission_phone: string
+          submission_room: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user"
