@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_submissions: {
+        Row: {
+          business_id: string | null
+          category: string
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          room: string
+          status: string
+        }
+        Insert: {
+          business_id?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          room: string
+          status?: string
+        }
+        Update: {
+          business_id?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          room?: string
+          status?: string
+        }
+        Relationships: []
+      }
       businesses: {
         Row: {
           added_by: string | null
@@ -79,7 +118,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      review_business_submission: {
+        Args: { decision: string; submission_id: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user"
