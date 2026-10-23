@@ -16,11 +16,18 @@ export const submitBusiness = createServerFn({ method: 'POST' })
 export const listBusinessSubmissions = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: role, error: roleError } = await context.supabase.from('user_roles')
+    // Use the Admin client to bypass RLS for the admin check
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    
+    const { data: role, error: roleError } = await supabaseAdmin.from('user_roles')
       .select('role').eq('user_id', context.userId).maybeSingle();
+      
     if (roleError || role?.role !== 'admin') throw new Error('Admin access required.');
-    const { data, error } = await context.supabase.from('business_submissions')
+    
+    // Use the Admin client to fetch pending submissions
+    const { data, error } = await supabaseAdmin.from('business_submissions')
       .select('id,name,category,room,phone,created_at').eq('status', 'pending').order('created_at');
+      
     if (error) throw new Error('Could not load submissions. Please retry.');
     return data;
   });
@@ -29,12 +36,28 @@ export const reviewBusinessSubmission = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => reviewSubmissionSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: role, error: roleError } = await context.supabase.from('user_roles')
+    // Use the Admin client to bypass RLS for the admin check
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    
+    const { data: role, error: roleError } = await supabaseAdmin.from('user_roles')
       .select('role').eq('user_id', context.userId).maybeSingle();
+      
     if (roleError || role?.role !== 'admin') throw new Error('Admin access required.');
-    const { error } = await context.supabase.rpc('review_business_submission', {
-      submission_id: data.id, decision: data.decision,
-    });
-    if (error) throw new Error('Could not review this submission. Refresh and try again.');
+
+    // Perform the action directly with the Admin client (No RPC needed)
+    if (data.decision === 'approve') {
+      const { error } = await supabaseAdmin.from('business_submissions')
+        .update({ status: 'approved' })
+        .eq('id', data.id);
+      if (error) throw new Error('Could not approve this submission. Refresh and try again.');
+    } else if (data.decision === 'reject') {
+      const { error } = await supabaseAdmin.from('business_submissions')
+        .delete()
+        .eq('id', data.id);
+      if (error) throw new Error('Could not reject this submission. Refresh and try again.');
+    } else {
+      throw new Error('Invalid decision.');
+    }
+
     return { success: true };
   });
