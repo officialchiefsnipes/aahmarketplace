@@ -64,8 +64,8 @@ export const reviewBusinessSubmission = createServerFn({ method: 'POST' })
 
       if (insertError) {
         console.error("Insert Error:", insertError);
-        throw new Error('Failed to publish to marketplace.');
-      }
+     throw new Error(`Failed: ${insertError.message}`)
+      };
 
       // Mark as approved in the submissions table
       const { error: updateError } = await supabaseAdmin.from('business_submissions')
