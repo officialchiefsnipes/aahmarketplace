@@ -44,14 +44,15 @@ function writeCache(list) {
 /* ---------------------------- Synonyms ------------------------------- */
 
 const SYNONYMS = {
-  'food & cooking': ['food', 'cook', 'cooking', 'kitchen', 'meal', 'restaurant', 'eat', 'catering', 'chef'],
-  'hair & barbing': ['hair', 'barber', 'barbing', 'salon', 'hairdresser', 'braid', 'braiding', 'weave', 'cut'],
-  'phone & gadget repair': ['phone', 'gadget', 'repair', 'fix', 'screen', 'laptop', 'charger'],
-  laundry: ['laundry', 'wash', 'washing', 'iron', 'ironing', 'dry cleaning'],
-  tailoring: ['tailor', 'tailoring', 'sew', 'sewing', 'clothes', 'alteration'],
-  'printing & documentation': ['print', 'printing', 'photocopy', 'document', 'scan', 'binding'],
-  transport: ['transport', 'ride', 'bike', 'okada', 'cab', 'taxi', 'drop'],
-  'phone credit & data': ['recharge', 'airtime', 'data', 'credit', 'top-up', 'topup'],
+  'hair & barbing': ['hair', 'barber', 'barbing', 'salon', 'hairdresser', 'braid', 'braiding', 'weave', 'wig', 'wigs', 'stylist', 'clipper', 'shave', 'cut', 'shampoo', 'treatment'],
+  'food & cooking': ['food', 'cook', 'cooking', 'kitchen', 'meal', 'restaurant', 'eat', 'catering', 'chef', 'pastry', 'cake', 'drinks', 'jollof', 'snack', 'swallow', 'grill', 'barbecue', 'shawarma', 'burger'],
+  'phone & gadget repair': ['phone', 'gadget', 'repair', 'fix', 'screen', 'laptop', 'charger', 'hardware', 'software', 'unlock', 'battery', 'iphone', 'samsung', 'technician'],
+  laundry: ['laundry', 'wash', 'washing', 'iron', 'ironing', 'dry cleaning', 'wash and wear', 'starch', 'cleaner'],
+  tailoring: ['tailor', 'tailoring', 'sew', 'sewing', 'clothes', 'alteration', 'fashion', 'designer', 'agbada', 'native', 'suit', 'dress', 'shirt', 'trouser'],
+  'printing & documentation': ['print', 'printing', 'photocopy', 'document', 'scan', 'binding', 'project', 'typing', 'lamination', 'id card', 'cv', 'resume', 'typing'],
+  transport: ['transport', 'ride', 'bike', 'okada', 'cab', 'taxi', 'drop', 'keke', 'shuttle', 'logistics', 'delivery', 'dispatch'],
+  'phone credit & data': ['recharge', 'airtime', 'data', 'credit', 'top-up', 'topup', 'internet', 'sim', 'mtn', 'airtel', 'glo', '9mobile'],
+  'beauty & makeup': ['makeup', 'make up', 'beauty', 'nails', 'lashes', 'pedicure', 'manicure', 'cosmetics', 'skincare', 'fragrance', 'perfume', 'scents', 'lotion', 'cream'],
 };
 
 /* ----------------------------- Helpers ------------------------------- */
@@ -61,8 +62,10 @@ const normalize = (value) => (value || '').toString().toLowerCase().trim();
 function expandQuery(query) {
   const q = normalize(query).slice(0, 60);
   const terms = new Set([q]);
+  
   for (const [category, words] of Object.entries(SYNONYMS)) {
-    if (q.includes(category) || words.some((w) => q.includes(w))) {
+    // If the query contains the category name OR any of the related words
+    if (q.includes(category) || words.some((w) => q.includes(w) || w.includes(q))) {
       terms.add(category);
       words.forEach((w) => terms.add(w));
     }
